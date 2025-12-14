@@ -22,6 +22,8 @@
 
 
 #include "minimap.h"
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 #include "tile.h"
 #include "game.h"
 #include "spritemanager.h"
@@ -31,6 +33,7 @@
 #include <framework/graphics/painter.h>
 #include <framework/graphics/image.h>
 #include <framework/graphics/framebuffermanager.h>
+#include <framework/graphics/texturemanager.h>
 #include <framework/core/resourcemanager.h>
 #include <framework/core/filestream.h>
 #include <zlib.h>
@@ -136,6 +139,47 @@ void Minimap::draw(const Rect& screenRect, const Position& mapCenter, float scal
                 Rect dest(xs, ys, MMBLOCK_SIZE * scale, MMBLOCK_SIZE * scale);
 
                 g_drawQueue->addTexturedRect(dest, tex, src);
+            }
+        }
+    }
+
+    
+    // Render native markers
+    if (!m_markers.empty()) {
+        int tileSize = g_sprites.spriteSize() * scale;
+        Point screenCenter = screenRect.center();
+
+        static TexturePtr markerIcons = nullptr;
+        if (!markerIcons) {
+            markerIcons = g_textures.getTexture("/images/game/minimap/mapflags");
+        }
+
+        if (markerIcons) {
+            int iconSize = 11;
+            int iconsPerRow = markerIcons->getWidth() / iconSize;
+            int tilesX = screenRect.width() / tileSize + 2;
+            int tilesY = screenRect.height() / tileSize + 2;
+
+            for (const auto& pair : m_markers) {
+                const MinimapMarker& marker = pair.second;
+                if (marker.pos.z != mapCenter.z)
+                    continue;
+
+                int dx = (int)marker.pos.x - (int)mapCenter.x;
+                int dy = (int)marker.pos.y - (int)mapCenter.y;
+
+                if (std::abs(dx) > tilesX / 2 || std::abs(dy) > tilesY / 2)
+                    continue;
+
+                int sx = screenCenter.x + dx * tileSize - iconSize / 2;
+                int sy = screenCenter.y + dy * tileSize - iconSize / 2;
+
+                int iconX = (marker.icon % iconsPerRow) * iconSize;
+                int iconY = (marker.icon / iconsPerRow) * iconSize;
+
+                Rect dest(sx, sy, iconSize, iconSize);
+                Rect src(iconX, iconY, iconSize, iconSize);
+                g_drawQueue->addTexturedRect(dest, markerIcons, src);
             }
         }
     }
@@ -454,3 +498,118 @@ void Minimap::saveOtmm(const std::string& fileName)
         g_logger.error(stdext::format("failed to save OTMM minimap: %s", e.what()));
     }
 }
+
+
+// ============== Native Marker Methods ==============
+
+void Minimap::addMarker(const Position& pos, uint8_t icon, const std::string& description)
+{
+    uint64_t key = getMarkerKey(pos);
+    m_markers[key] = MinimapMarker(pos, icon, description);
+}
+
+void Minimap::removeMarker(const Position& pos)
+{
+    uint64_t key = getMarkerKey(pos);
+    m_markers.erase(key);
+}
+
+void Minimap::clearMarkers()
+{
+    m_markers.clear();
+}
+
+bool Minimap::hasMarker(const Position& pos) const
+{
+    uint64_t key = getMarkerKey(pos);
+    return m_markers.find(key) != m_markers.end();
+}
+
+MinimapMarker Minimap::getMarker(const Position& pos) const
+{
+    uint64_t key = getMarkerKey(pos);
+    auto it = m_markers.find(key);
+    if (it != m_markers.end())
+        return it->second;
+    return MinimapMarker();
+}
+
+std::vector<MinimapMarker> Minimap::getMarkersInRange(const Position& center, int range) const
+{
+    std::vector<MinimapMarker> result;
+    for (const auto& pair : m_markers) {
+        const MinimapMarker& m = pair.second;
+        if (m.pos.z == center.z &&
+            std::abs((int)m.pos.x - (int)center.x) <= range &&
+            std::abs((int)m.pos.y - (int)center.y) <= range) {
+            result.push_back(m);
+        }
+    }
+    return result;
+}
+
+uint8_t Minimap::parseIconString(const std::string& iconStr)
+{
+    static std::unordered_map<std::string, uint8_t> iconMap = {
+        {"checkmark", 0}, {"?", 1}, {"!", 2}, {"star", 3},
+        {"crossmark", 4}, {"temple", 5}, {"brush", 6}, {"sword", 7},
+        {"flag", 8}, {"lock", 9}, {"skull", 10}, {"$", 11},
+        {"dollar", 11}, {"red up", 12}, {"red down", 13},
+        {"red right", 14}, {"red left", 15}, {"green up", 16},
+        {"green down", 17}, {"green right", 18}, {"green left", 19},
+        {"up", 12}, {"down", 13}, {"right", 14}, {"left", 15}
+    };
+
+    std::string lower = iconStr;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+    auto it = iconMap.find(lower);
+    if (it != iconMap.end())
+        return it->second;
+    return 8; // default flag
+}
+
+void Minimap::loadMarkersFromJson(const std::string& jsonPath)
+{
+    try {
+        std::string jsonData = g_resources.readFileContents(jsonPath);
+        if (jsonData.empty()) {
+            g_logger.error(stdext::format("Failed to read markers file: %s", jsonPath));
+            return;
+        }
+
+        auto markers = json::parse(jsonData);
+
+        clearMarkers();
+        int loaded = 0;
+        for (const auto& m : markers) {
+            if (m.contains("x") && m.contains("y") && m.contains("z")) {
+                Position pos;
+                pos.x = m["x"].get<int>();
+                pos.y = m["y"].get<int>();
+                pos.z = m["z"].get<int>();
+
+                uint8_t icon = 8;
+                if (m.contains("icon") && m["icon"].is_string()) {
+                    icon = parseIconString(m["icon"].get<std::string>());
+                }
+
+                std::string desc = "NO_DESCRIPTION";
+                if (m.contains("description") && m["description"].is_string()) {
+                    desc = m["description"].get<std::string>();
+                    if (desc.empty()) desc = "NO_DESCRIPTION";
+                }
+
+                addMarker(pos, icon, desc);
+                loaded++;
+            }
+        }
+
+        m_markersLoaded = true;
+        g_logger.info(stdext::format("[Minimap] Loaded %d native markers from %s", loaded, jsonPath));
+
+    } catch (const std::exception& e) {
+        g_logger.error(stdext::format("Failed to parse markers JSON: %s", e.what()));
+    }
+}
+

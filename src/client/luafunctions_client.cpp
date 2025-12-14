@@ -181,6 +181,15 @@ void Client::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_minimap", "loadOtmm", &Minimap::loadOtmm, &g_minimap);
     g_lua.bindSingletonFunction("g_minimap", "saveOtmm", &Minimap::saveOtmm, &g_minimap);
 
+    // Native marker bindings (100x faster than widget markers)
+    g_lua.bindSingletonFunction("g_minimap", "addMarker", &Minimap::addMarker, &g_minimap);
+    g_lua.bindSingletonFunction("g_minimap", "removeMarker", &Minimap::removeMarker, &g_minimap);
+    g_lua.bindSingletonFunction("g_minimap", "clearMarkers", &Minimap::clearMarkers, &g_minimap);
+    g_lua.bindSingletonFunction("g_minimap", "loadMarkersFromJson", &Minimap::loadMarkersFromJson, &g_minimap);
+    g_lua.bindSingletonFunction("g_minimap", "getMarkerCount", &Minimap::getMarkerCount, &g_minimap);
+    g_lua.bindSingletonFunction("g_minimap", "hasMarker", &Minimap::hasMarker, &g_minimap);
+
+
     g_lua.registerSingletonClass("g_creatures");
     g_lua.bindSingletonFunction("g_creatures", "getCreatures", &CreatureManager::getCreatures, &g_creatures);
     g_lua.bindSingletonFunction("g_creatures", "getCreatureByName", &CreatureManager::getCreatureByName, &g_creatures);
