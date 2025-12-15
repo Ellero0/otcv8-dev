@@ -1,0 +1,56 @@
+name: Build Windows Only
+on: [workflow_dispatch]
+
+jobs:
+  Windows:
+    name: Build windows version
+    runs-on: windows-2019
+    timeout-minutes: 120
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+          submodules: recursive
+
+    - name: Setup MSBuild and add to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup vcpkg
+      shell: pwsh
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git D:\vcpkg
+        cd D:\vcpkg
+        git checkout 3b3bd424827a1f7f4813216f6b32b6c61e386b2e
+        .\bootstrap-vcpkg.bat -disableMetrics
+
+    - name: Install vcpkg dependencies
+      shell: pwsh
+      run: |
+        D:\vcpkg\vcpkg install --triplet x86-windows-static boost-iostreams boost-asio boost-beast boost-system boost-variant boost-lockfree boost-process boost-program-options boost-uuid boost-filesystem luajit glew physfs openal-soft libogg libvorbis zlib libzip bzip2 openssl nlohmann-json
+
+    - name: Integrate vcpkg
+      shell: pwsh
+      run: |
+        D:\vcpkg\vcpkg integrate install
+
+    - name: Compile otclient_dx
+      timeout-minutes: 25
+      run: |
+        cd vc16
+        MSBuild /property:Configuration=DirectX /p:BUILD_REVISION=${{ github.run_number }}
+
+    - name: Compile otclient_gl
+      timeout-minutes: 25
+      run: |
+        cd vc16
+        MSBuild /property:Configuration=OpenGL /p:BUILD_REVISION=${{ github.run_number }}
+
+    - name: Upload binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows-binaries
+        path: |
+          otclient_gl.exe
+          otclient_dx.exe
+        if-no-files-found: error
