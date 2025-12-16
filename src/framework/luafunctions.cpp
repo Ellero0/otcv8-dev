@@ -188,6 +188,7 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_logger", "log", &Logger::log, &g_logger);
     g_lua.bindSingletonFunction("g_logger", "fireOldMessages", &Logger::fireOldMessages, &g_logger);
     g_lua.bindSingletonFunction("g_logger", "setLogFile", &Logger::setLogFile, &g_logger);
+    g_lua.bindSingletonFunction("g_logger", "setDetailedLogFile", &Logger::setDetailedLogFile, &g_logger);
     g_lua.bindSingletonFunction("g_logger", "setOnLog", &Logger::setOnLog, &g_logger);
     g_lua.bindSingletonFunction("g_logger", "debug", &Logger::debug, &g_logger);
     g_lua.bindSingletonFunction("g_logger", "info", &Logger::info, &g_logger);

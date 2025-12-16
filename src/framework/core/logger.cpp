@@ -25,6 +25,8 @@
 
 #include <framework/core/resourcemanager.h>
 #include <framework/core/graphicalapplication.h>
+#include <iomanip>
+#include <chrono>
 
 #ifdef FW_GRAPHICS
 #include <framework/platform/platformwindow.h>
@@ -61,6 +63,21 @@ void Logger::log(Fw::LogLevel level, const std::string& message)
     if(m_outFile.good()) {
         m_outFile << outmsg << std::endl;
         m_outFile.flush();
+    }
+
+    // Write to detailed log with timestamp and level
+    if(m_detailedOutFile.good()) {
+        auto now = std::chrono::system_clock::now();
+        auto time_t_now = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+        const static std::string levelNames[] = { "DEBUG", "INFO", "WARNING", "ERROR", "FATAL" };
+
+        m_detailedOutFile << std::put_time(std::localtime(&time_t_now), "%Y-%m-%d %H:%M:%S")
+                          << "." << std::setfill('0') << std::setw(3) << ms.count()
+                          << " [" << levelNames[level] << "] "
+                          << message << std::endl;
+        m_detailedOutFile.flush();
     }
 #endif
 
@@ -150,6 +167,26 @@ void Logger::setLogFile(const std::string& file)
         return;
     }
     m_outFile.flush();
+#endif
+}
+
+void Logger::setDetailedLogFile(const std::string& file)
+{
+#ifndef ANDROID
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_detailedOutFile.open(stdext::utf8_to_latin1(file.c_str()).c_str(), std::ios::out | std::ios::app);
+    if(!m_detailedOutFile.is_open() || !m_detailedOutFile.good()) {
+        g_logger.error(stdext::format("Unable to save detailed log to '%s'", file));
+        return;
+    }
+
+    // Write header
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    m_detailedOutFile << "\n========================================\n"
+                      << "Detailed Log Started: " << std::put_time(std::localtime(&time_t_now), "%Y-%m-%d %H:%M:%S")
+                      << "\n========================================\n" << std::endl;
+    m_detailedOutFile.flush();
 #endif
 }
 

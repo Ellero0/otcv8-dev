@@ -40,6 +40,7 @@ int main(int argc, const char* argv[]) {
     g_resources.init(argv[0]);
     std::string compactName = g_resources.getCompactName();
     g_logger.setLogFile(compactName + ".log");
+    g_logger.setDetailedLogFile(compactName + "_detailed.log");
 
     // setup application name and version
     g_app.setName("OTClientV8");

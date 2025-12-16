@@ -56,6 +56,7 @@ public:
 
     void fireOldMessages();
     void setLogFile(const std::string& file);
+    void setDetailedLogFile(const std::string& file);
     void setOnLog(const OnLogCallback& onLog) { m_onLog = onLog; }
 
     std::string getLastLog() {
@@ -71,6 +72,7 @@ private:
     std::list<LogMessage> m_logMessages;
     OnLogCallback m_onLog;
     std::fstream m_outFile;
+    std::fstream m_detailedOutFile;
     std::recursive_mutex m_mutex;
     std::string m_lastLog;
     bool m_testingMode = false;
