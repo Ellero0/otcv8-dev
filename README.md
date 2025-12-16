@@ -1,14 +1,53 @@
-# OTCv8 Developer Editon (sources)
+# EZODUS - OTCv8 Fork for Gunzodus
 
-Ready to use binaries are available in [OTCv8/otclientv8](https://github.com/OTCv8/otclientv8) repository.
+Fork of OTCv8 with **Native Minimap Markers** - 100x faster marker loading (6000+ markers in ~0.5s vs ~80s with Lua widgets).
 
-OTCv8 sources. You can add whatever you want and create pull request with your changes.
-Accepted pull requests will be added to official OTCv8 version, so if you want a new feature in OTCv8, just add it here and wait for approval.
-If you add custom feature, make sure it's optional and can be enabled via g_game.enableFeature function, otherwise your pull request will be rejected.
+## Key Features
 
-This repository uses Github Actions to build and test OTCv8 automaticlly whenever you push changes to repository.
+- **Native C++ Markers** - Bypass Lua widget overhead for minimap markers
+- **JSON Marker Loading** - Load thousands of markers from JSON files instantly
+- **Full OTCv8 Compatibility** - All original features preserved
 
-Check Actions tab to see test results or to download latest binaries. ![Workflow status](https://github.com/OTCv8/otcv8-dev/actions/workflows/ci-cd.yml/badge.svg)
+## Native Markers API
+
+```lua
+g_minimap.loadMarkersFromJson("/markers.json")  -- Load from JSON
+g_minimap.addMarker(position, iconId, "desc")   -- Add single marker
+g_minimap.removeMarker(position)                -- Remove marker
+g_minimap.clearMarkers()                        -- Clear all
+g_minimap.getMarkerCount()                      -- Get count
+g_minimap.hasMarker(position)                   -- Check existence
+```
+
+## JSON Marker Format
+
+```json
+[
+  {"x": 32000, "y": 32000, "z": 7, "icon": "flag", "description": "My marker"},
+  {"x": 32100, "y": 32100, "z": 7, "icon": "star", "description": "Another"}
+]
+```
+
+### Supported Icons
+
+| Icon | Name | Icon | Name |
+|:----:|------|:----:|------|
+| ![checkmark](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/checkmark.png) | `checkmark` | ![skull](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/skull.png) | `skull` |
+| ![question](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/question.png) | `?` | ![dollar](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/dollar.png) | `$` |
+| ![exclamation](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/exclamation.png) | `!` | ![red-up](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/red-up.png) | `red up` |
+| ![star](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/star.png) | `star` | ![red-down](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/red-down.png) | `red down` |
+| ![crossmark](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/crossmark.png) | `crossmark` | ![red-right](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/red-right.png) | `red right` |
+| ![cross](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/cross.png) | `temple` | ![red-left](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/red-left.png) | `red left` |
+| ![bag](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/bag.png) | `brush` | ![up](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/up.png) | `green up` |
+| ![sword](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/sword.png) | `sword` | ![down](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/down.png) | `green down` |
+| ![flag](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/flag.png) | `flag` | | |
+| ![lock](https://raw.githubusercontent.com/tibiamaps/tibia-map/main/src/_img/marker-icons/lock.png) | `lock` | | |
+
+---
+
+This repository uses Github Actions to build and test automatically.
+
+Check Actions tab to see test results or download latest binaries. ![Workflow status](https://github.com/OTCv8/otcv8-dev/actions/workflows/ci-cd.yml/badge.svg)
 
 ## Compilation
 
